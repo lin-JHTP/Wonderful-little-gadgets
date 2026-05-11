@@ -1,7 +1,5 @@
 """格式自动检测逻辑。"""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import json
 import re
@@ -49,7 +47,7 @@ def _is_json(text: str) -> bool:
         return False
     try:
         json.loads(text)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
     return True
 

@@ -1,7 +1,5 @@
 """文件写入逻辑。"""
 
-from __future__ import annotations
-
 from datetime import datetime
 import json
 from pathlib import Path

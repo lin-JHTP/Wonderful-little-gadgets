@@ -26,6 +26,7 @@ echo.
 echo [2/3] Building exe, please wait...
 pyinstaller --onefile --windowed ^
     --name="AI-Export" ^
+    --paths="." ^
     --hidden-import=app ^
     --hidden-import=plugins ^
     --hidden-import=plugins.base_plugin ^
