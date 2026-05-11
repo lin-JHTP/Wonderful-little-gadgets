@@ -13,8 +13,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/3] Installing PyInstaller...
-pip install pyinstaller
+echo [1/3] Checking PyInstaller...
+pyinstaller --version >nul 2>&1
+if errorlevel 1 (
+    echo PyInstaller not found, installing...
+    pip install pyinstaller
+) else (
+    echo PyInstaller already installed, skipping.
+)
 echo.
 
 echo [2/3] Building exe, please wait...
