@@ -1,14 +1,9 @@
-"""主窗口框架：负责 Notebook 与插件自动加载。"""
+"""主窗口框架：负责 Notebook 与插件加载。"""
 
-from __future__ import annotations
-
-import importlib
-import inspect
-from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
 
-from plugins.base_plugin import BasePlugin
+from plugins import ALL_PLUGINS
 
 
 class GadgetApp:
@@ -16,7 +11,7 @@ class GadgetApp:
 
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("🛠 小工具箱")
+        self.root.title("小工具箱")
         self.root.geometry("680x560")
         self.root.minsize(680, 560)
 
@@ -36,38 +31,23 @@ class GadgetApp:
                 break
 
     def _load_plugins(self) -> None:
-        """扫描 plugins 目录并自动加载所有插件。"""
-        plugins_dir = Path(__file__).resolve().parent / "plugins"
-        plugin_files = sorted(
-            path for path in plugins_dir.glob("*.py") if path.stem not in {"__init__", "base_plugin"}
-        )
-
+        """从插件注册表加载所有插件，每个插件成为一个 Tab。"""
         loaded = 0
-        for plugin_file in plugin_files:
-            module_name = f"plugins.{plugin_file.stem}"
+        for plugin_cls in ALL_PLUGINS:
             try:
-                module = importlib.import_module(module_name)
-            except Exception as exc:  # noqa: BLE001
-                print(f"插件导入失败 {module_name}: {exc}")
-                continue
-
-            plugin_classes = [
-                cls
-                for _, cls in inspect.getmembers(module, inspect.isclass)
-                if issubclass(cls, BasePlugin) and cls is not BasePlugin and cls.__module__ == module.__name__
-            ]
-
-            for plugin_cls in plugin_classes:
-                try:
-                    plugin = plugin_cls()
-                    tab = ttk.Frame(self.notebook)
-                    plugin.build_ui(tab)
-                    self.notebook.add(tab, text=plugin.name)
-                    loaded += 1
-                except Exception as exc:  # noqa: BLE001
-                    print(f"插件实例化失败 {plugin_cls.__name__}: {exc}")
+                plugin = plugin_cls()
+                tab = ttk.Frame(self.notebook)
+                plugin.build_ui(tab)
+                self.notebook.add(tab, text=plugin.name)
+                loaded += 1
+            except Exception as exc:
+                print(f"插件加载失败 {plugin_cls.__name__}: {exc}")
 
         if loaded == 0:
             empty = ttk.Frame(self.notebook)
-            ttk.Label(empty, text="未检测到可用插件", anchor="center").pack(fill="both", expand=True, padx=20, pady=20)
+            ttk.Label(
+                empty,
+                text="未检测到可用插件",
+                anchor="center",
+            ).pack(fill="both", expand=True, padx=20, pady=20)
             self.notebook.add(empty, text="提示")

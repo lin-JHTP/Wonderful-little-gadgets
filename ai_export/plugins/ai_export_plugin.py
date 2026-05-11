@@ -1,7 +1,5 @@
 """AI 内容导出插件。"""
 
-from __future__ import annotations
-
 from pathlib import Path
 import os
 import tkinter as tk
@@ -19,7 +17,7 @@ class AIExportPlugin(BasePlugin):
     def __init__(self) -> None:
         self._title_placeholder = "请输入文件标题，留空则自动生成"
         self._output_dir = self._default_desktop()
-        self._latest_file: Path | None = None
+        self._latest_file = None
 
     @property
     def name(self) -> str:
@@ -72,7 +70,9 @@ class AIExportPlugin(BasePlugin):
 
         self.status_var = tk.StringVar(value="状态：等待输入内容")
         ttk.Label(status_frame, textvariable=self.status_var).grid(row=0, column=0, sticky="w")
-        self.open_button = ttk.Button(status_frame, text="打开文件夹", command=self._open_folder, state="disabled")
+        self.open_button = ttk.Button(
+            status_frame, text="打开文件夹", command=self._open_folder, state="disabled"
+        )
         self.open_button.grid(row=0, column=1, padx=(8, 0))
 
     def _on_title_focus_in(self, _: tk.Event) -> None:
@@ -120,7 +120,7 @@ class AIExportPlugin(BasePlugin):
             self._latest_file = file_path
             self.status_var.set(f"检测格式：{detection.format_label} | 已生成：{file_path}")
             self.open_button.configure(state="normal")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             messagebox.showerror("错误", f"生成文件失败：{exc}")
 
     def _open_folder(self) -> None:
@@ -130,7 +130,7 @@ class AIExportPlugin(BasePlugin):
             return
 
         if os.name == "nt":
-            os.startfile(folder)  # type: ignore[attr-defined]
+            os.startfile(folder)
             return
 
         webbrowser.open(folder.resolve().as_uri())
