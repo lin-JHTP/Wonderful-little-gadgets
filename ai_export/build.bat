@@ -18,7 +18,12 @@ pip install pyinstaller
 echo.
 
 echo [2/3] Building exe, please wait...
-pyinstaller --onefile --windowed --name="AI-Export" main.py
+pyinstaller --onefile --windowed ^
+    --name="AI-Export" ^
+    --add-data "app.py;." ^
+    --add-data "core;core" ^
+    --add-data "plugins;plugins" ^
+    main.py
 echo.
 
 if exist "dist\AI-Export.exe" (
