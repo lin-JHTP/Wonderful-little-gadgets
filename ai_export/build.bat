@@ -24,7 +24,16 @@ if errorlevel 1 (
 echo.
 
 echo [2/3] Building exe, please wait...
-pyinstaller --onefile --windowed --name="AI-Export" main.py
+pyinstaller --onefile --windowed ^
+    --name="AI-Export" ^
+    --hidden-import=app ^
+    --hidden-import=plugins ^
+    --hidden-import=plugins.base_plugin ^
+    --hidden-import=plugins.ai_export_plugin ^
+    --hidden-import=core ^
+    --hidden-import=core.detector ^
+    --hidden-import=core.file_writer ^
+    main.py
 echo.
 
 if exist "dist\AI-Export.exe" (
