@@ -4,7 +4,7 @@ Windows 磁盘空间分配工具
 功能：将指定磁盘（如 D 盘）的未使用空间划拨给另一个磁盘（如 C 盘）
 原理：通过 Windows diskpart 工具收缩源磁盘并扩展目标磁盘
 
-⚠️  注意事项：
+注意事项：
     1. 必须以【管理员身份】运行
     2. 分区操作不可逆，请提前备份重要数据
     3. 仅支持 NTFS 分区
@@ -24,8 +24,7 @@ from tkinter import messagebox, ttk
 # 权限检查
 # ---------------------------------------------------------------------------
 
-def is_admin() -> bool:
-    """判断当前进程是否拥有管理员权限。"""
+def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
     except Exception:
@@ -33,11 +32,10 @@ def is_admin() -> bool:
 
 
 def relaunch_as_admin():
-    """以管理员身份重新启动本脚本。"""
     script = os.path.abspath(sys.argv[0])
-    params = " ".join(f'"{a}"' for a in sys.argv[1:])
+    params = " ".join('"%s"' % a for a in sys.argv[1:])
     ret = ctypes.windll.shell32.ShellExecuteW(
-        None, "runas", sys.executable, f'"{script}" {params}', None, 1
+        None, "runas", sys.executable, '"%s" %s' % (script, params), None, 1
     )
     if ret <= 32:
         messagebox.showerror("权限错误", "无法获取管理员权限，请手动以管理员身份运行。")
@@ -48,11 +46,7 @@ def relaunch_as_admin():
 # diskpart 操作封装
 # ---------------------------------------------------------------------------
 
-def run_diskpart(script_lines: list) -> tuple:
-    """
-    将 diskpart 命令写入临时脚本文件并执行。
-    返回 (成功与否, 输出文本)。
-    """
+def run_diskpart(script_lines):
     script_content = "\r\n".join(script_lines) + "\r\n"
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, encoding="gbk"
@@ -75,35 +69,25 @@ def run_diskpart(script_lines: list) -> tuple:
         os.unlink(tmp_path)
 
 
-def get_volume_info() -> str:
-    """获取所有卷（分区）信息。"""
+def get_volume_info():
     _, output = run_diskpart(["list volume"])
     return output
 
 
-def shrink_volume(drive_letter: str, shrink_mb: int) -> tuple:
-    """
-    收缩指定盘符对应的卷。
-    drive_letter: 不含冒号，如 'D'
-    shrink_mb: 要收缩的大小（MB）
-    """
+def shrink_volume(drive_letter, shrink_mb):
     script = [
-        f"select volume {drive_letter}",
-        f"shrink desired={shrink_mb}",
+        "select volume %s" % drive_letter,
+        "shrink desired=%d" % shrink_mb,
     ]
     return run_diskpart(script)
 
 
-def extend_volume(drive_letter: str, extend_mb: int) -> tuple:
-    """
-    扩展指定盘符对应的卷。
-    drive_letter: 不含冒号，如 'C'
-    extend_mb: 要扩展的大小（MB），0 表示使用全部可用未分配空间
-    """
-    size_param = f"size={extend_mb}" if extend_mb > 0 else ""
+def extend_volume(drive_letter, extend_mb):
+    size_param = "size=%d" % extend_mb if extend_mb > 0 else ""
+    cmd = ("extend %s" % size_param).strip()
     script = [
-        f"select volume {drive_letter}",
-        f"extend {size_param}".strip(),
+        "select volume %s" % drive_letter,
+        cmd,
     ]
     return run_diskpart(script)
 
@@ -113,7 +97,6 @@ def extend_volume(drive_letter: str, extend_mb: int) -> tuple:
 # ---------------------------------------------------------------------------
 
 class DiskTransferApp(tk.Tk):
-    """磁盘空间分配工具主界面。"""
 
     DRIVE_LETTERS = [chr(c) for c in range(ord('A'), ord('Z') + 1)]
 
@@ -131,7 +114,6 @@ class DiskTransferApp(tk.Tk):
     def _build_ui(self):
         pad = {"padx": 10, "pady": 6}
 
-        # ---- 标题 ----
         title_frame = tk.Frame(self, bg="#2c3e50")
         title_frame.pack(fill=tk.X)
         tk.Label(
@@ -143,12 +125,11 @@ class DiskTransferApp(tk.Tk):
             pady=10,
         ).pack()
 
-        # ---- 警告条 ----
         warn_frame = tk.Frame(self, bg="#f39c12")
         warn_frame.pack(fill=tk.X)
         tk.Label(
             warn_frame,
-            text="⚠  操作不可逆！请提前备份数据，并确保以管理员身份运行",
+            text="  操作不可逆！请提前备份数据，并确保以管理员身份运行",
             font=("微软雅黑", 9),
             fg="white",
             bg="#f39c12",
@@ -158,7 +139,7 @@ class DiskTransferApp(tk.Tk):
         main = tk.Frame(self, padx=20, pady=10)
         main.pack()
 
-        # ---- 源磁盘（被收缩） ----
+        # 源磁盘
         src_frame = ttk.LabelFrame(main, text="源磁盘（将被压缩 / 释放空间）", padding=10)
         src_frame.grid(row=0, column=0, sticky="ew", **pad)
 
@@ -174,7 +155,7 @@ class DiskTransferApp(tk.Tk):
         self.shrink_gb.set("10")
         self.shrink_gb.grid(row=1, column=1, sticky="w", padx=(4, 0), pady=(6, 0))
 
-        # ---- 目标磁盘（被扩展） ----
+        # 目标磁盘
         dst_frame = ttk.LabelFrame(main, text="目标磁盘（将获得空间）", padding=10)
         dst_frame.grid(row=1, column=0, sticky="ew", **pad)
 
@@ -192,7 +173,7 @@ class DiskTransferApp(tk.Tk):
         self.extend_gb.set("0")
         self.extend_gb.grid(row=1, column=1, sticky="w", padx=(4, 0), pady=(6, 0))
 
-        # ---- 操作按钮 ----
+        # 操作按钮
         btn_frame = tk.Frame(main)
         btn_frame.grid(row=2, column=0, pady=(4, 0))
 
@@ -214,7 +195,7 @@ class DiskTransferApp(tk.Tk):
             command=self._do_transfer,
         ).grid(row=1, column=0, columnspan=3, pady=(8, 0), ipadx=10, ipady=4)
 
-        # ---- 日志输出 ----
+        # 日志输出
         log_frame = ttk.LabelFrame(main, text="操作日志", padding=6)
         log_frame.grid(row=3, column=0, sticky="ew", **pad)
 
@@ -234,13 +215,13 @@ class DiskTransferApp(tk.Tk):
         h = self.winfo_height()
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
-        self.geometry(f"+{(sw - w) // 2}+{(sh - h) // 2}")
+        self.geometry("+%d+%d" % ((sw - w) // 2, (sh - h) // 2))
 
     # ------------------------------------------------------------------
     # 日志辅助
     # ------------------------------------------------------------------
 
-    def _log(self, msg: str):
+    def _log(self, msg):
         self.log_text.configure(state=tk.NORMAL)
         self.log_text.insert(tk.END, msg + "\n")
         self.log_text.see(tk.END)
@@ -292,18 +273,16 @@ class DiskTransferApp(tk.Tk):
         if result is None:
             return
         src, _, shrink_mb, _ = result
-        if not messagebox.askyesno(
-            "确认操作",
-            f"即将压缩 {src} 盘 {shrink_mb / 1024:.1f} GB\n\n此操作不可撤销，是否继续？"
-        ):
+        msg = "即将压缩 %s 盘 %.1f GB\n\n此操作不可撤销，是否继续？" % (src, shrink_mb / 1024)
+        if not messagebox.askyesno("确认操作", msg):
             return
         self._log_separator()
-        self._log(f"[操作] 压缩 {src} 盘，大小 {shrink_mb} MB...")
+        self._log("[操作] 压缩 %s 盘，大小 %d MB..." % (src, shrink_mb))
         ok, out = shrink_volume(src, shrink_mb)
         self._log(out)
         if ok:
-            self._log(f"[成功] {src} 盘压缩完成！")
-            messagebox.showinfo("完成", f"{src} 盘压缩完成！\n可在磁盘管理中看到未分配空间。")
+            self._log("[成功] %s 盘压缩完成！" % src)
+            messagebox.showinfo("完成", "%s 盘压缩完成！\n可在磁盘管理中看到未分配空间。" % src)
         else:
             self._log("[失败] 压缩操作未成功，请查看日志。")
             messagebox.showerror("失败", "压缩操作失败，请查看日志。")
@@ -313,19 +292,17 @@ class DiskTransferApp(tk.Tk):
         if result is None:
             return
         _, dst, _, extend_mb = result
-        size_desc = f"{extend_mb / 1024:.1f} GB" if extend_mb > 0 else "全部未分配空间"
-        if not messagebox.askyesno(
-            "确认操作",
-            f"即将扩展 {dst} 盘 {size_desc}\n\n此操作不可撤销，是否继续？"
-        ):
+        size_desc = "%.1f GB" % (extend_mb / 1024) if extend_mb > 0 else "全部未分配空间"
+        msg = "即将扩展 %s 盘 %s\n\n此操作不可撤销，是否继续？" % (dst, size_desc)
+        if not messagebox.askyesno("确认操作", msg):
             return
         self._log_separator()
-        self._log(f"[操作] 扩展 {dst} 盘，大小 {size_desc}...")
+        self._log("[操作] 扩展 %s 盘，大小 %s..." % (dst, size_desc))
         ok, out = extend_volume(dst, extend_mb)
         self._log(out)
         if ok:
-            self._log(f"[成功] {dst} 盘扩展完成！")
-            messagebox.showinfo("完成", f"{dst} 盘扩展完成！")
+            self._log("[成功] %s 盘扩展完成！" % dst)
+            messagebox.showinfo("完成", "%s 盘扩展完成！" % dst)
         else:
             self._log("[失败] 扩展操作未成功，请查看日志。")
             messagebox.showerror("失败", "扩展操作失败，请查看日志。")
@@ -335,43 +312,43 @@ class DiskTransferApp(tk.Tk):
         if result is None:
             return
         src, dst, shrink_mb, extend_mb = result
-        size_desc = f"{extend_mb / 1024:.1f} GB" if extend_mb > 0 else "全部释放的空间"
-        if not messagebox.askyesno(
-            "确认操作",
-            f"操作摘要：\n"
-            f"  · 压缩 {src} 盘  {shrink_mb / 1024:.1f} GB\n"
-            f"  · 扩展 {dst} 盘  {size_desc}\n\n"
+        size_desc = "%.1f GB" % (extend_mb / 1024) if extend_mb > 0 else "全部释放的空间"
+        msg = (
+            "操作摘要：\n"
+            "  · 压缩 %s 盘  %.1f GB\n"
+            "  · 扩展 %s 盘  %s\n\n"
             "此操作不可撤销，请确保已备份数据！\n\n是否继续？"
-        ):
+        ) % (src, shrink_mb / 1024, dst, size_desc)
+        if not messagebox.askyesno("确认操作", msg):
             return
 
         self._log_separator()
-        # Step 1: 收缩
-        self._log(f"[步骤 1/2] 压缩 {src} 盘 {shrink_mb} MB...")
+        self._log("[步骤 1/2] 压缩 %s 盘 %d MB..." % (src, shrink_mb))
         ok, out = shrink_volume(src, shrink_mb)
         self._log(out)
         if not ok:
             self._log("[失败] 压缩步骤失败，已中止后续操作。")
             messagebox.showerror("失败", "压缩操作失败，已停止。请查看日志。")
             return
-        self._log(f"[成功] {src} 盘压缩完成。")
+        self._log("[成功] %s 盘压缩完成。" % src)
 
-        # Step 2: 扩展
-        self._log(f"[步骤 2/2] 扩展 {dst} 盘 {size_desc}...")
+        self._log("[步骤 2/2] 扩展 %s 盘 %s..." % (dst, size_desc))
         ok, out = extend_volume(dst, extend_mb)
         self._log(out)
         if ok:
-            self._log(f"[成功] {dst} 盘扩展完成！全部操作已完成。")
+            self._log("[成功] %s 盘扩展完成！全部操作已完成。" % dst)
             messagebox.showinfo(
                 "完成",
-                f"操作成功！\n\n{src} 盘已压缩 {shrink_mb / 1024:.1f} GB\n{dst} 盘已扩展 {size_desc}"
+                "操作成功！\n\n%s 盘已压缩 %.1f GB\n%s 盘已扩展 %s" % (
+                    src, shrink_mb / 1024, dst, size_desc
+                )
             )
         else:
             self._log("[失败] 扩展步骤失败，请查看日志。")
             messagebox.showerror(
                 "部分失败",
-                f"{src} 盘已压缩成功，但 {dst} 盘扩展失败。\n"
-                "请打开"磁盘管理"手动扩展，或检查分区布局是否符合要求。"
+                "%s 盘已压缩成功，但 %s 盘扩展失败。\n"
+                "请打开磁盘管理手动扩展，或检查分区布局是否符合要求。" % (src, dst)
             )
 
 
