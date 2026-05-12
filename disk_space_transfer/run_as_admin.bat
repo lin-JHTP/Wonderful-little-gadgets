@@ -1,17 +1,13 @@
 @echo off
-chcp 65001 >nul
-title 磁盘空间分配工具
+title Disk Space Transfer Tool
 
 echo ============================================
-echo   Windows 磁盘空间分配工具
+echo   Windows Disk Space Transfer Tool
 echo   Wonderful Little Gadgets
 echo ============================================
 echo.
-echo [提示] 本工具需要管理员权限运行
-echo [提示] 正在检查权限...
-echo.
 
-:: 检查是否已有管理员权限
+:: Check if already running as administrator
 net session >nul 2>&1
 if %errorLevel% == 0 (
     goto :run
@@ -20,17 +16,18 @@ if %errorLevel% == 0 (
 )
 
 :elevate
-echo [提示] 正在请求管理员权限（UAC 弹窗）...
+echo [INFO] Requesting administrator privileges (UAC prompt)...
 powershell -Command "Start-Process cmd -ArgumentList '/c cd /d \"%~dp0\" && python disk_transfer.py && pause' -Verb RunAs -WorkingDirectory '%~dp0'"
 goto :end
 
 :run
 cd /d "%~dp0"
+echo [INFO] Launching disk_transfer.py ...
 python disk_transfer.py
 if %errorLevel% neq 0 (
     echo.
-    echo [错误] 启动失败，请确认已安装 Python 3.9+
-    echo [提示] 下载地址: https://www.python.org/downloads/
+    echo [ERROR] Launch failed. Please make sure Python 3.9+ is installed.
+    echo [INFO]  Download: https://www.python.org/downloads/
     pause
 )
 
